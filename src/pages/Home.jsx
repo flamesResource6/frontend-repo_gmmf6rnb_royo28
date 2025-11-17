@@ -35,6 +35,7 @@ export default function Home() {
   const [heroLoaded, setHeroLoaded] = useState(false)
   const [dividerLoaded, setDividerLoaded] = useState(false)
   const [useTestScene, setUseTestScene] = useState(false)
+  const [sceneError, setSceneError] = useState('')
 
   const webglSupported = useWebGLSupport()
 
@@ -48,20 +49,6 @@ export default function Home() {
     }
   }, [])
 
-  // Safety timeout: if Spline doesn't load in 6s, fall back to light view
-  useEffect(() => {
-    if (!enable3D) return
-    const t = setTimeout(() => {
-      if (!heroLoaded) {
-        console.warn('[3D] Timeout: falling back to light view')
-        setEnable3D(false)
-      }
-    }, 6000)
-    return () => clearTimeout(t)
-  }, [enable3D, heroLoaded])
-
-  const canRender3D = useMemo(() => enable3D && !isSmall && webglSupported, [enable3D, isSmall, webglSupported])
-
   const HERO_SCENE = useTestScene
     ? 'https://prod.spline.design/6VJ9mDRbugzuDUFc/scene.splinecode' // lightweight demo cube
     : 'https://prod.spline.design/Ob4Gv8b8oF0oUh2G/scene.splinecode'
@@ -69,6 +56,43 @@ export default function Home() {
   const DIVIDER_SCENE = useTestScene
     ? 'https://prod.spline.design/6VJ9mDRbugzuDUFc/scene.splinecode'
     : 'https://prod.spline.design/LULl2f5Vt9q8X4m3/scene.splinecode'
+
+  // Preflight check: verify the scene URL is reachable to avoid silent timeouts
+  useEffect(() => {
+    let aborted = false
+    setSceneError('')
+    if (!enable3D) return
+    const url = HERO_SCENE
+    ;(async () => {
+      try {
+        const res = await fetch(url, { method: 'GET', cache: 'no-store', mode: 'cors' })
+        if (!res.ok) {
+          if (aborted) return
+          setSceneError(`Szene nicht erreichbar (Status ${res.status})`)
+        }
+      } catch (err) {
+        if (aborted) return
+        setSceneError('Netzwerk- oder CORS-Problem beim Laden der 3D‑Szene')
+      }
+    })()
+    return () => {
+      aborted = true
+    }
+  }, [HERO_SCENE, enable3D])
+
+  // Safety timeout: if Spline doesn't load in 12s, fall back to light view
+  useEffect(() => {
+    if (!enable3D) return
+    const t = setTimeout(() => {
+      if (!heroLoaded) {
+        console.warn('[3D] Timeout: falling back to light view')
+        setEnable3D(false)
+      }
+    }, 12000)
+    return () => clearTimeout(t)
+  }, [enable3D, heroLoaded])
+
+  const canRender3D = useMemo(() => enable3D && !isSmall && webglSupported && !sceneError, [enable3D, isSmall, webglSupported, sceneError])
 
   return (
     <div>
@@ -91,8 +115,13 @@ export default function Home() {
                   style={{ width: '100%', height: '100%', display: 'block' }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center select-none">
-                  Leichte Ansicht aktiv
+                <div className="w-full h-full flex flex-col items-center justify-center text-white/70 p-6 text-center select-none space-y-2">
+                  <div>Leichte Ansicht aktiv</div>
+                  {sceneError && (
+                    <div className="text-xs text-red-300/80">
+                      {sceneError} – <a className="underline" href={HERO_SCENE} target="_blank" rel="noreferrer">Szene öffnen</a>
+                    </div>
+                  )}
                 </div>
               )}
             </Suspense>
@@ -120,6 +149,11 @@ export default function Home() {
                 {webglSupported ? (enable3D ? (heroLoaded ? '3D aktiv' : 'Lade 3D…') : '3D aus') : 'WebGL nicht verfügbar'}
               </span>
             </div>
+            {sceneError && (
+              <div className="mt-3 text-sm text-red-200/80">
+                Hinweis: Die 3D‑Szene konnte nicht geladen werden. Öffne den obigen Link, um zu prüfen, ob dein Netzwerk das CDN blockiert.
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
@@ -131,7 +165,7 @@ export default function Home() {
           <div className="relative h-64 rounded-3xl overflow-hidden border border-white/10 bg-white/5 z-0">
             <ErrorBoundary>
               <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/60">Lädt 3D...</div>}>
-                {canRender3D ? (
+                {enable3D && !isSmall && webglSupported && !sceneError ? (
                   <Spline
                     scene={DIVIDER_SCENE}
                     onLoad={() => {

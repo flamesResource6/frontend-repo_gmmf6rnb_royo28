@@ -34,6 +34,7 @@ export default function Home() {
   const [isSmall, setIsSmall] = useState(false)
   const [heroLoaded, setHeroLoaded] = useState(false)
   const [dividerLoaded, setDividerLoaded] = useState(false)
+  const [useTestScene, setUseTestScene] = useState(false)
 
   const webglSupported = useWebGLSupport()
 
@@ -61,21 +62,33 @@ export default function Home() {
 
   const canRender3D = useMemo(() => enable3D && !isSmall && webglSupported, [enable3D, isSmall, webglSupported])
 
+  const HERO_SCENE = useTestScene
+    ? 'https://prod.spline.design/6VJ9mDRbugzuDUFc/scene.splinecode' // lightweight demo cube
+    : 'https://prod.spline.design/Ob4Gv8b8oF0oUh2G/scene.splinecode'
+
+  const DIVIDER_SCENE = useTestScene
+    ? 'https://prod.spline.design/6VJ9mDRbugzuDUFc/scene.splinecode'
+    : 'https://prod.spline.design/LULl2f5Vt9q8X4m3/scene.splinecode'
+
   return (
     <div>
       {/* Full-bleed 3D hero */}
       <section className="relative min-h-[90vh] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0f1711] via-[#102016] to-[#0f1711]" />
+        {/* Background gradient (bottom layer) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0f1711] via-[#102016] to-[#0f1711] z-0" />
 
         {/* Spline background layer */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 z-0">
           <ErrorBoundary>
             <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/60">Lädt 3D...</div>}>
               {canRender3D ? (
                 <Spline
-                  scene="https://prod.spline.design/Ob4Gv8b8oF0oUh2G/scene.splinecode"
-                  onLoad={() => setHeroLoaded(true)}
-                  style={{ width: '100%', height: '100%' }}
+                  scene={HERO_SCENE}
+                  onLoad={() => {
+                    console.log('[3D] Hero scene loaded')
+                    setHeroLoaded(true)
+                  }}
+                  style={{ width: '100%', height: '100%', display: 'block' }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center select-none">
@@ -86,11 +99,11 @@ export default function Home() {
           </ErrorBoundary>
         </div>
 
-        {/* Dark veil for readability */}
-        <div className="absolute inset-0 bg-[#0f1711]/40" />
+        {/* Dark veil for readability (above Spline) */}
+        <div className="absolute inset-0 bg-[#0f1711]/25 z-10" />
 
-        {/* Content overlay */}
-        <div className="relative max-w-6xl mx-auto px-4 md:px-6 pt-20 pb-24 flex flex-col justify-center min-h-[90vh]">
+        {/* Content overlay (top) */}
+        <div className="relative z-20 max-w-6xl mx-auto px-4 md:px-6 pt-20 pb-24 flex flex-col justify-center min-h-[90vh]">
           <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{duration:.6}}>
             <h1 className="text-4xl md:text-6xl font-semibold leading-tight">Thai Massage in Apple‑Style</h1>
             <p className="text-white/80 mt-6 text-lg md:text-xl max-w-2xl">Minimalistisch, beruhigend und konvertierend. Entspanne in einer modernen Atmosphäre mit sanften 3D‑Akzenten.</p>
@@ -99,6 +112,9 @@ export default function Home() {
               <Link to="/massagen" className="rounded-full border border-white/20 px-5 py-3">Massagen ansehen</Link>
               <button onClick={() => setEnable3D((v) => !v)} className="rounded-full border border-white/20 px-5 py-3">
                 {enable3D ? '3D deaktivieren' : '3D aktivieren'}
+              </button>
+              <button onClick={() => setUseTestScene((v) => !v)} className="rounded-full border border-white/20 px-5 py-3">
+                {useTestScene ? 'Original‑Szene' : 'Test‑Szene'}
               </button>
               <span className="ml-2 text-xs text-white/60">
                 {webglSupported ? (enable3D ? (heroLoaded ? '3D aktiv' : 'Lade 3D…') : '3D aus') : 'WebGL nicht verfügbar'}
@@ -110,23 +126,26 @@ export default function Home() {
 
       {/* Divider 3D ribbon (only on md+) */}
       <section className="relative py-12 hidden md:block">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent z-0" />
         <div className="max-w-6xl mx-auto px-4 md:px-6 relative">
-          <div className="relative h-64 rounded-3xl overflow-hidden border border-white/10 bg-white/5">
+          <div className="relative h-64 rounded-3xl overflow-hidden border border-white/10 bg-white/5 z-0">
             <ErrorBoundary>
               <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/60">Lädt 3D...</div>}>
                 {canRender3D ? (
                   <Spline
-                    scene="https://prod.spline.design/LULl2f5Vt9q8X4m3/scene.splinecode"
-                    onLoad={() => setDividerLoaded(true)}
-                    style={{ width: '100%', height: '100%' }}
+                    scene={DIVIDER_SCENE}
+                    onLoad={() => {
+                      console.log('[3D] Divider scene loaded')
+                      setDividerLoaded(true)
+                    }}
+                    style={{ width: '100%', height: '100%', display: 'block' }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center">Leichte Ansicht aktiv</div>
                 )}
               </Suspense>
             </ErrorBoundary>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0f1711]/30 via-transparent to-[#0f1711]/30" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0f1711]/30 via-transparent to-[#0f1711]/30 z-10" />
           </div>
         </div>
       </section>

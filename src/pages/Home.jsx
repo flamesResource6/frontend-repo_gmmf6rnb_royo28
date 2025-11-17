@@ -1,5 +1,5 @@
 import { Suspense, lazy, useMemo, useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import ErrorBoundary from '../components/ErrorBoundary'
 
@@ -27,6 +27,39 @@ function useWebGLSupport() {
     }
   }, [])
   return supported
+}
+
+function LightFallback({ hint, link, onRetry }) {
+  const { scrollYProgress } = useScroll()
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, -40])
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, 40])
+  return (
+    <div className="relative w-full h-full">
+      {/* Soft gradient backdrop */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#102016] via-[#0f1711] to-[#0f1711]" />
+
+      {/* Floating orbs */}
+      <motion.div style={{ y: y1 }} className="absolute -top-16 -left-10 h-72 w-72 rounded-full bg-[#DBBF8B]/10 blur-3xl" />
+      <motion.div style={{ y: y2 }} className="absolute top-24 -right-20 h-80 w-80 rounded-full bg-emerald-300/10 blur-3xl" />
+      <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} className="absolute bottom-16 left-1/4 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
+
+      {/* Glass card */}
+      <div className="absolute inset-0 flex items-center justify-center p-6">
+        <div className="max-w-xl w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6 text-center">
+          <div className="text-white/80">Leichte Ansicht aktiv</div>
+          {hint ? (
+            <div className="mt-2 text-xs text-red-300/80">
+              {hint} – <a className="underline" href={link} target="_blank" rel="noreferrer">Szene öffnen</a>
+            </div>
+          ) : null}
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <button onClick={onRetry} className="rounded-full border border-white/20 px-5 py-2 text-sm hover:bg-white/10">Erneut versuchen</button>
+            <a href="https://calendly.com/myvela" target="_blank" rel="noreferrer" className="rounded-full bg-[#DBBF8B] text-[#263F28] px-5 py-2 text-sm font-medium">Termin buchen</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function Home() {
@@ -115,14 +148,7 @@ export default function Home() {
                   style={{ width: '100%', height: '100%', display: 'block' }}
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-white/70 p-6 text-center select-none space-y-2">
-                  <div>Leichte Ansicht aktiv</div>
-                  {sceneError && (
-                    <div className="text-xs text-red-300/80">
-                      {sceneError} – <a className="underline" href={HERO_SCENE} target="_blank" rel="noreferrer">Szene öffnen</a>
-                    </div>
-                  )}
-                </div>
+                <LightFallback hint={sceneError} link={HERO_SCENE} onRetry={() => setEnable3D(true)} />
               )}
             </Suspense>
           </ErrorBoundary>
@@ -175,7 +201,9 @@ export default function Home() {
                     style={{ width: '100%', height: '100%', display: 'block' }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center">Leichte Ansicht aktiv</div>
+                  <div className="w-full h-full">
+                    <LightFallback hint="" link={DIVIDER_SCENE} onRetry={() => setEnable3D(true)} />
+                  </div>
                 )}
               </Suspense>
             </ErrorBoundary>

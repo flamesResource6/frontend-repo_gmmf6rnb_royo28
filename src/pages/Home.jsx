@@ -1,7 +1,9 @@
 import { Suspense, lazy } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import ErrorBoundary from '../components/ErrorBoundary'
 
+// Lazy import Spline only on client to avoid SSR/StrictMode double-invoke issues
 const Spline = lazy(() => import('@splinetool/react-spline'))
 
 const Card = ({ title, to, desc }) => (
@@ -25,14 +27,21 @@ export default function Home() {
               </motion.h1>
               <p className="text-white/70 mt-6 text-lg">Minimalistisch, beruhigend und konvertierend. Entspanne in einer modernen Atmosphäre.</p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a href="https://calendly.com/myvela" target="_blank" className="rounded-full bg-[#DBBF8B] text-[#263F28] px-5 py-3 font-medium">Jetzt Termin buchen</a>
+                <a href="https://calendly.com/myvela" target="_blank" rel="noreferrer" className="rounded-full bg-[#DBBF8B] text-[#263F28] px-5 py-3 font-medium">Jetzt Termin buchen</a>
                 <Link to="/massagen" className="rounded-full border border-white/20 px-5 py-3">Massagen ansehen</Link>
               </div>
             </div>
             <div className="relative h-[360px] md:h-[480px] rounded-3xl overflow-hidden border border-white/10 bg-white/5">
-              <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/60">Lädt 3D...</div>}>
-                <Spline scene="https://prod.spline.design/Ob4Gv8b8oF0oUh2G/scene.splinecode" />
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/60">Lädt 3D...</div>}>
+                  {/* Prevent render on very small screens to avoid crashes */}
+                  {typeof window !== 'undefined' && window?.matchMedia && window.matchMedia('(min-width: 360px)').matches ? (
+                    <Spline scene="https://prod.spline.design/Ob4Gv8b8oF0oUh2G/scene.splinecode" onLoad={() => { /* success */ }} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center">Leichte Ansicht aktiv</div>
+                  )}
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </div>
         </div>

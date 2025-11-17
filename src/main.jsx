@@ -11,18 +11,17 @@ import Test from './Test'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />}> 
-          <Route index element={<Home />} />
-          <Route path="massagen" element={<Massagen />} />
-          <Route path="wellness" element={<Wellness />} />
-          <Route path="oil" element={<Oil />} />
-          <Route path="sport" element={<Sport />} />
-        </Route>
-        <Route path="/test" element={<Test />} />
-      </Routes>
-    </BrowserRouter>
-  </React.StrictMode>,
+  // Removed StrictMode to avoid double-invoking effects that can crash heavy 3D embeds
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<App />}> 
+        <Route index element={<Home />} />
+        <Route path="massagen" element={<Massagen />} />
+        <Route path="wellness" element={<Wellness />} />
+        <Route path="oil" element={<Oil />} />
+        <Route path="sport" element={<Sport />} />
+      </Route>
+      <Route path="/test" element={<Test />} />
+    </Routes>
+  </BrowserRouter>
 )

@@ -1,52 +1,100 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import ErrorBoundary from '../components/ErrorBoundary'
 
-// Lazy import Spline only on client to avoid SSR/StrictMode double-invoke issues
+// Lazy import Spline only on client
 const Spline = lazy(() => import('@splinetool/react-spline'))
 
 const Card = ({ title, to, desc }) => (
-  <Link to={to} className="group rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 p-6 backdrop-blur transition-colors">
-    <h3 className="text-xl font-semibold mb-2">{title}</h3>
-    <p className="text-white/70 mb-4">{desc}</p>
-    <span className="inline-flex items-center text-[#DBBF8B] group-hover:translate-x-1 transition-transform">Details →</span>
+  <Link to={to} className="group rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 p-6 backdrop-blur transition-colors relative overflow-hidden">
+    <h3 className="text-xl font-semibold mb-2 relative z-10">{title}</h3>
+    <p className="text-white/70 mb-4 relative z-10">{desc}</p>
+    <span className="inline-flex items-center text-[#DBBF8B] group-hover:translate-x-1 transition-transform relative z-10">Details →</span>
+
+    {/* Subtle moving glow */}
+    <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-[#DBBF8B]/10 blur-3xl group-hover:bg-[#DBBF8B]/20 transition-colors" />
   </Link>
 )
 
 export default function Home() {
+  const [enable3D, setEnable3D] = useState(true)
+  const [isSmall, setIsSmall] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window?.matchMedia) {
+      const mq = window.matchMedia('(max-width: 360px)')
+      const handler = (e) => setIsSmall(e.matches)
+      handler(mq)
+      mq.addEventListener?.('change', handler)
+      return () => mq.removeEventListener?.('change', handler)
+    }
+  }, [])
+
+  const canRender3D = useMemo(() => enable3D && !isSmall, [enable3D, isSmall])
+
   return (
     <div>
-      <section className="relative overflow-hidden">
+      {/* Full-bleed 3D hero */}
+      <section className="relative min-h-[90vh] overflow-hidden">
+        {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0f1711] via-[#102016] to-[#0f1711]" />
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-10 pb-24 relative">
-          <div className="grid md:grid-cols-2 gap-10 items-center">
-            <div>
-              <motion.h1 initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:.6}} className="text-4xl md:text-6xl font-semibold leading-tight">
-                Thai Massage in Apple-Style
-              </motion.h1>
-              <p className="text-white/70 mt-6 text-lg">Minimalistisch, beruhigend und konvertierend. Entspanne in einer modernen Atmosphäre.</p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <a href="https://calendly.com/myvela" target="_blank" rel="noreferrer" className="rounded-full bg-[#DBBF8B] text-[#263F28] px-5 py-3 font-medium">Jetzt Termin buchen</a>
-                <Link to="/massagen" className="rounded-full border border-white/20 px-5 py-3">Massagen ansehen</Link>
-              </div>
+
+        {/* Spline background layer */}
+        <div className="absolute inset-0">
+          <ErrorBoundary>
+            <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/60">Lädt 3D...</div>}>
+              {canRender3D ? (
+                <Spline
+                  scene="https://prod.spline.design/Ob4Gv8b8oF0oUh2G/scene.splinecode"
+                  onLoad={() => { /* loaded */ }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center">Leichte Ansicht aktiv</div>
+              )}
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+
+        {/* Dark veil for readability */}
+        <div className="absolute inset-0 bg-[#0f1711]/40" />
+
+        {/* Content overlay */}
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 pt-20 pb-24 flex flex-col justify-center min-h-[90vh]">
+          <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{duration:.6}}>
+            <h1 className="text-4xl md:text-6xl font-semibold leading-tight">Thai Massage in Apple‑Style</h1>
+            <p className="text-white/80 mt-6 text-lg md:text-xl max-w-2xl">Minimalistisch, beruhigend und konvertierend. Entspanne in einer modernen Atmosphäre mit sanften 3D‑Akzenten.</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href="https://calendly.com/myvela" target="_blank" rel="noreferrer" className="rounded-full bg-[#DBBF8B] text-[#263F28] px-5 py-3 font-medium">Jetzt Termin buchen</a>
+              <Link to="/massagen" className="rounded-full border border-white/20 px-5 py-3">Massagen ansehen</Link>
+              <button onClick={() => setEnable3D((v) => !v)} className="rounded-full border border-white/20 px-5 py-3">
+                {enable3D ? '3D deaktivieren' : '3D aktivieren'}
+              </button>
             </div>
-            <div className="relative h-[360px] md:h-[480px] rounded-3xl overflow-hidden border border-white/10 bg-white/5">
-              <ErrorBoundary>
-                <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/60">Lädt 3D...</div>}>
-                  {/* Prevent render on very small screens to avoid crashes */}
-                  {typeof window !== 'undefined' && window?.matchMedia && window.matchMedia('(min-width: 360px)').matches ? (
-                    <Spline scene="https://prod.spline.design/Ob4Gv8b8oF0oUh2G/scene.splinecode" onLoad={() => { /* success */ }} />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center">Leichte Ansicht aktiv</div>
-                  )}
-                </Suspense>
-              </ErrorBoundary>
-            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Divider 3D ribbon (only on md+) */}
+      <section className="relative py-12 hidden md:block">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent" />
+        <div className="max-w-6xl mx-auto px-4 md:px-6 relative">
+          <div className="relative h-64 rounded-3xl overflow-hidden border border-white/10 bg-white/5">
+            <ErrorBoundary>
+              <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/60">Lädt 3D...</div>}>
+                {canRender3D ? (
+                  <Spline scene="https://prod.spline.design/LULl2f5Vt9q8X4m3/scene.splinecode" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center">Leichte Ansicht aktiv</div>
+                )}
+              </Suspense>
+            </ErrorBoundary>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0f1711]/30 via-transparent to-[#0f1711]/30" />
           </div>
         </div>
       </section>
 
+      {/* Services grid with subtle depth */}
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4 md:px-6 grid md:grid-cols-3 gap-6">
           <Card title="Thai Wellness" to="/wellness" desc="Sanft & entspannend – ideal zum Abschalten." />
